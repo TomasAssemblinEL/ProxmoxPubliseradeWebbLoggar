@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Flask Log Web",
+			"type": "shell",
+			"command": ".\\.venv\\Scripts\\python",
+			"args": [
+				"app.py"
+			],
+			"isBackground": true,
+			"group": "build"
+		}
+	]
+}

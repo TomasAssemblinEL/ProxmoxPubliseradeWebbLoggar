@@ -1,0 +1,15 @@
+[Unit]
+Description=Loggwebb Flask Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/logweb
+Environment="PATH=/opt/logweb/.venv/bin"
+ExecStart=/opt/logweb/.venv/bin/gunicorn -b 0.0.0.0:8080 app:app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
