@@ -66,6 +66,26 @@ Aktivera tjänsten:
 - `systemctl enable --now logweb`
 - `systemctl status logweb`
 
+### Nginx reverse proxy (port 80/443)
+
+1. Installera Nginx:
+   - `apt install -y nginx`
+2. Kopiera konfigurationen från projektet:
+   - `cp /opt/logweb/deploy/nginx-logweb.conf /etc/nginx/sites-available/logweb`
+3. Aktivera site och verifiera syntax:
+   - `ln -s /etc/nginx/sites-available/logweb /etc/nginx/sites-enabled/logweb`
+   - `nginx -t`
+4. Starta om Nginx:
+   - `systemctl restart nginx`
+
+För HTTPS med LetsEncrypt, ersatt `your-domain` i konfigfilen och skapa certifikat innan du laddar om Nginx.
+
+Exempel med certbot (om DNS pekar mot containern):
+
+- `apt install -y certbot python3-certbot-nginx`
+- `certbot --nginx -d ditt-domannamn`
+- `systemctl reload nginx`
+
 ## GitHub snabbstart
 
 1. Initiera git lokalt:
