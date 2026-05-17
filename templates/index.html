@@ -77,22 +77,38 @@
       color: #6b7280;
       background: #fff;
     }
+
+    .category {
+      margin-top: 18px;
+    }
+
+    .category h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      color: #334155;
+    }
   </style>
 </head>
 <body>
   <main class="panel">
     <h1>Publiserade loggar</h1>
-    <p>Klicka på en loggfil för att visa den som ren text.</p>
+    <p>Klicka på en loggfil för att visa den som ren text. Filerna visas per kategori.</p>
 
-    {% if logs %}
-      <ul>
-        {% for log in logs %}
-          <li><a href="{{ url_for('view_log', filename=log) }}">{{ log }}</a></li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <div class="empty">Inga .txt-filer hittades i mappen <strong>logs/</strong>.</div>
-    {% endif %}
+    {% for category, logs in logs_by_category.items() %}
+      <section class="category">
+        <h2>{{ category }}</h2>
+        {% if logs %}
+          <ul>
+            {% for log in logs %}
+              <li><a href="{{ url_for('view_log', category=category, filename=log) }}">{{ log }}</a></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty">Inga .txt-filer hittades i <strong>logs/{{ category }}/</strong>.</div>
+        {% endif %}
+      </section>
+    {% endfor %}
   </main>
 </body>
 </html>

@@ -4,8 +4,8 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 
 ## Funktioner
 
-- Listar alla `.txt`-filer i `logs/`
-- Visar varje loggfil som ren text via `/logs/<filnamn>`
+- Listar `.txt`-filer grupperade i kategorier: `VMM1`, `VMM2`, `MixTank`, `Irrigation`
+- Visar varje loggfil som ren text via `/logs/<kategori>/<filnamn>`
 - Enkel startsida på `/`
 - Fungerar bakom Nginx reverse proxy med HTTPS
 
@@ -22,7 +22,12 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 5. Öppna:
    - `http://localhost:8080`
 
-Lägg dina loggfiler som `.txt` i `logs/`.
+Lägg dina loggfiler som `.txt` i respektive kategori:
+
+- `logs/VMM1/`
+- `logs/VMM2/`
+- `logs/MixTank/`
+- `logs/Irrigation/`
 
 ## Produktion (nuvarande upplägg)
 
@@ -163,7 +168,10 @@ cat /opt/logweb/logs/test.txt
 
 Skriv till:
 
-- `/opt/nodered-logs/log-YYYY-MM-DD.txt`
+- `/opt/nodered-logs/VMM1/log-YYYY-MM-DD.txt`
+- `/opt/nodered-logs/VMM2/log-YYYY-MM-DD.txt`
+- `/opt/nodered-logs/MixTank/log-YYYY-MM-DD.txt`
+- `/opt/nodered-logs/Irrigation/log-YYYY-MM-DD.txt`
 
 och appenda en rad i taget, t.ex.:
 
