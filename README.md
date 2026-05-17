@@ -92,6 +92,27 @@ Kopiera projektets konfig:
 - `systemctl enable --now nginx`
 - `systemctl reload nginx`
 
+### Enkel uppdatering från GitHub (ett kommando)
+
+Projektet innehaller ett uppdateringsskript i `deploy/update-logweb.sh`.
+
+1. Forsta gangen, gor skriptet korbart:
+   - `chmod +x /opt/logweb/deploy/update-logweb.sh`
+2. Kor uppdatering:
+   - `sudo /opt/logweb/deploy/update-logweb.sh`
+
+Skriptet gor detta automatiskt:
+
+- Hamtar senaste kod fran `origin/main` (fast-forward only)
+- Installerar/uppdaterar Python-beroenden
+- Startar om `logweb`
+- Validerar och laddar om Nginx
+- Gor en lokal health-check mot appen
+
+Om du vill uppdatera en annan branch:
+
+- `sudo /opt/logweb/deploy/update-logweb.sh <branchnamn>`
+
 ## HTTPS med Let's Encrypt + DuckDNS (DNS-01)
 
 Använd DNS-challenge om HTTP-challenge störs av redirect/annan ingress.
