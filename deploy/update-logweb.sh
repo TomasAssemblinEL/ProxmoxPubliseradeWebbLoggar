@@ -41,7 +41,21 @@ systemctl is-active --quiet nginx && echo "nginx: active"
 
 echo "==> Local health check"
 if command -v curl >/dev/null 2>&1; then
-  curl -fsS -o /dev/null http://127.0.0.1:8080/ && echo "app: ok"
+  HEALTH_OK=0
+  for i in $(seq 1 20); do
+    if curl -fsS -o /dev/null http://127.0.0.1:8080/; then
+      HEALTH_OK=1
+      echo "app: ok (attempt $i/20)"
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "$HEALTH_OK" -ne 1 ]; then
+    echo "Warning: app health-check failed after 20 seconds." >&2
+    echo "Check: systemctl status logweb --no-pager -l" >&2
+    echo "Check: journalctl -u logweb -n 80 --no-pager" >&2
+  fi
 else
   echo "curl not found, skipped health check"
 fi

@@ -107,7 +107,7 @@ Skriptet gor detta automatiskt:
 - Installerar/uppdaterar Python-beroenden
 - Startar om `logweb`
 - Validerar och laddar om Nginx
-- Gor en lokal health-check mot appen
+- Gor en lokal health-check med retry (upp till 20 sekunder)
 
 Om du vill uppdatera en annan branch:
 
