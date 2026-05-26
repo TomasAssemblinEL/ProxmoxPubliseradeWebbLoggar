@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily cleanup of old Loggwebb log files
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15m
+Unit=logweb-cleanup.service
+
+[Install]
+WantedBy=timers.target
