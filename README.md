@@ -5,6 +5,8 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 ## Funktioner
 
 - Listar `.txt`-filer grupperade i kategorier: `VMM1`, `VMM2`, `MixTank`, `Irrigation`
+- Visar endast loggfiler fran de senaste 5 dagarna per kategori
+- Raderar automatiskt `.txt`-filer som ar aldre an 5 dagar per kategori
 - Visar varje loggfil som ren text via `/logs/<kategori>/<filnamn>`
 - Enkel startsida på `/`
 - Fungerar bakom Nginx reverse proxy med HTTPS
@@ -81,7 +83,40 @@ Aktivera:
 - `systemctl enable --now logweb`
 - `systemctl status logweb`
 
+### Daglig städning (systemd timer)
+
+Aktivera timer som raderar `.txt`-filer aldre an 5 dagar en gang per dygn.
+
+- `cp /opt/logweb/deploy/logweb-cleanup.service /etc/systemd/system/logweb-cleanup.service`
+- `cp /opt/logweb/deploy/logweb-cleanup.timer /etc/systemd/system/logweb-cleanup.timer`
+- `systemctl daemon-reload`
+- `systemctl enable --now logweb-cleanup.timer`
+- `systemctl status logweb-cleanup.timer --no-pager`
+- `systemctl list-timers --all | grep logweb-cleanup`
+
+Manuell testkorning av städning:
+
+- `systemctl start logweb-cleanup.service`
+- `journalctl -u logweb-cleanup.service -n 50 --no-pager`
+
+Fallback utan systemd timer (cron):
+
+- `crontab -e`
+- `15 3 * * * /opt/logweb/.venv/bin/python -c "from app import cleanup_old_logs; cleanup_old_logs()" >> /var/log/logweb-cleanup.log 2>&1`
+- `crontab -l | grep cleanup_old_logs`
+
 ### Nginx (dual-domain reverse proxy)
+
+Loggdomanen ar skyddad med HTTP Basic Auth i [deploy/nginx-logweb.conf](deploy/nginx-logweb.conf).
+
+Skapa fil for behoriga anvandare (forsta anvandaren):
+
+- `apt install -y apache2-utils`
+- `htpasswd -c /etc/nginx/.htpasswd-logweb loggadmin`
+
+Lagg till fler behoriga anvandare:
+
+- `htpasswd /etc/nginx/.htpasswd-logweb anna`
 
 Kopiera projektets konfig:
 
