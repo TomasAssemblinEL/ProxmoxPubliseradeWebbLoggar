@@ -37,6 +37,7 @@ Lägg dina loggfiler som `.txt` i respektive kategori:
 - Home Assistant: `192.168.1.166`
 - Loggdomän: `rudbergloggar.duckdns.org`
 - HA-domän: `rud4berg.duckdns.org`
+- Immich-domän: `rud4bergimmich.duckdns.org`
 - Publik port forward i UniFi:
   - TCP 80 -> `192.168.1.65:80`
   - TCP 443 -> `192.168.1.65:443`
@@ -173,12 +174,87 @@ certbot certonly \
   --dns-duckdns-propagation-seconds 60 \
   -d rud4berg.duckdns.org \
   -d rudbergloggar.duckdns.org \
+   -d rud4bergimmich.duckdns.org \
   -m dinmail@exempel.se \
   --agree-tos --no-eff-email --non-interactive
 ```
 
 4. Ladda om Nginx:
    - `nginx -t && systemctl reload nginx`
+
+### Enkel certifikat-uppdatering (ett kommando)
+
+Projektet innehaller ett certifikat-skript i `deploy/update-certificates.sh`.
+
+1. Forsta gangen, gor skriptet korbart:
+   - `chmod +x /opt/logweb/deploy/update-certificates.sh`
+2. Kor certifikat-uppdatering for alla tre domaner:
+   - `sudo /opt/logweb/deploy/update-certificates.sh dinmail@exempel.se`
+
+Skriptet gor detta automatiskt:
+
+- Uppdaterar/hamtar certifikat `rud4berg.duckdns.org` med domanerna `rud4berg.duckdns.org` och `rud4bergimmich.duckdns.org`
+- Uppdaterar/hamtar separat certifikat `rudbergloggar.duckdns.org` for loggdomanen
+- Visar installerade certifikat
+- Validerar Nginx-konfig och laddar om Nginx
+
+Viktigt om certifikat-sokvagar i Nginx:
+
+- Nar certifikatet for `rud4berg.duckdns.org` expanderas med Immich-domänen behalls cert-namnet `rud4berg.duckdns.org`
+- Da ligger filerna under `/etc/letsencrypt/live/rud4berg.duckdns.org/` for bade `rud4berg.duckdns.org` och `rud4bergimmich.duckdns.org`
+- Peka `ssl_certificate` och `ssl_certificate_key` till den katalogen for alla domaner som ingar i samma certifikat
+
+Verifiera domanlistan i certifikatet:
+
+- `certbot certificates`
+- Kontrollera att cert-namnet `rud4berg.duckdns.org` visar `Domains: rud4berg.duckdns.org rud4bergimmich.duckdns.org`
+
+### Uppdatera befintligt certifikat med ny domän
+
+Om certifikatet redan finns men saknar Immich-domänen, kör samma `certbot certonly`-kommando som ovan med alla tre `-d`-värden. Certbot uppdaterar då certifikatet så att det även innehåller:
+
+- `rud4bergimmich.duckdns.org`
+
+Kontrollera resultatet:
+
+- `certbot certificates`
+- `nginx -t && systemctl reload nginx`
+
+Testa automatisk förnyelse:
+
+- `certbot renew --dry-run`
+
+## Immich HTTPS-konfiguration bakom reverse proxy
+
+Immich behöver känna till sitt PUBLIC_URL för att generera rätta HTTPS-URL:er bakom reverse proxy.
+
+**Om Immich kör i Docker (docker-compose.yml):**
+
+```yaml
+services:
+  immich-server:
+    environment:
+      - PUBLIC_URL=https://rud4bergimmich.duckdns.org
+      # Övriga Immich-inställningar...
+```
+
+**Om Immich kör i systemd service:**
+
+1. Redigera servicefilen:
+   - `nano /etc/systemd/system/immich.service`
+2. Lägg till miljövariabel i `[Service]`-sektionen:
+   ```ini
+   Environment="PUBLIC_URL=https://rud4bergimmich.duckdns.org"
+   ```
+3. Ladda om och starta om:
+   - `systemctl daemon-reload`
+   - `systemctl restart immich`
+
+**Verifiera konfiguration:**
+
+1. Öppna https://rud4bergimmich.duckdns.org i browser
+2. Kontrollera att API-URL:er i DevTools (F12 → Network) visar `https://` och inte `http://`
+3. Testa uppladdning av foto/video för att bekräfta proxy-headers fungerar
 
 ## Delad loggmapp mellan Node-RED och loggserver (unprivileged LXC)
 
