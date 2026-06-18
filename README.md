@@ -34,6 +34,7 @@ Lägg dina loggfiler som `.txt` i respektive kategori:
 ## Produktion (nuvarande upplägg)
 
 - Proxmox loggserver: `192.168.1.65`
+- ESP32 Greenhouse Control: `192.168.1.125`
 - Home Assistant: `192.168.1.166`
 - Loggdomän: `rudbergloggar.duckdns.org`
 - HA-domän: `rud4berg.duckdns.org`
@@ -109,6 +110,11 @@ Fallback utan systemd timer (cron):
 ### Nginx (dual-domain reverse proxy)
 
 Loggdomanen ar skyddad med HTTP Basic Auth i [deploy/nginx-logweb.conf](deploy/nginx-logweb.conf).
+
+Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med tva val:
+
+- `https://rudbergloggar.duckdns.org/loggar` -> Proxmox loggserver (Flask)
+- `https://rudbergloggar.duckdns.org/esp32/` -> ESP32 Greenhouse Control (192.168.1.125 via Nginx proxy)
 
 Skapa fil for behoriga anvandare (forsta anvandaren):
 

@@ -88,12 +88,26 @@
       letter-spacing: 0.02em;
       color: #334155;
     }
+
+    .top-links {
+      margin-bottom: 14px;
+    }
+
+    .top-links a {
+      display: inline-block;
+      width: auto;
+      padding: 10px 12px;
+    }
   </style>
 </head>
 <body>
   <main class="panel">
-    <h1>Publiserade loggar</h1>
+    <h1>Loggserver</h1>
     <p>Klicka på en loggfil för att visa den som ren text. Filerna visas per kategori.</p>
+
+    <div class="top-links">
+      <a href="{{ url_for('index') }}">Tillbaka till startsida</a>
+    </div>
 
     {% for category, logs in logs_by_category.items() %}
       <section class="category">

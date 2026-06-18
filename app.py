@@ -79,6 +79,11 @@ def resolve_log_file(category: str, filename: str) -> Path:
 
 @app.route("/")
 def index():
+    return render_template("portal.html")
+
+
+@app.route("/loggar")
+def logs_index():
     return render_template("index.html", logs_by_category=list_text_logs_by_category())
 
 
