@@ -3,17 +3,21 @@ from time import time
 from datetime import date, datetime, timedelta
 import csv
 from io import StringIO
+import os
 
 from flask import Flask, Response, abort, render_template, send_file, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 
 BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.environ.get("LOGWEB_DATA_DIR", BASE_DIR / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = DATA_DIR / "mixtank.db"
 LOG_DIR = BASE_DIR / "logs"
 LOG_CATEGORIES = ("VMM1", "VMM2", "MixTank", "Irrigation")
 LOG_DAYS_WINDOW = 5
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'mixtank.db'}"
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 

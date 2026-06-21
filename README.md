@@ -43,7 +43,12 @@ Registrera och visa uppmatta varden fran MixTanken pa `https://rudbergloggar.duc
 - **Tillsatt ml PH-**: Mängd tillsatt pH-minus
 - **Tillsatt konc gödning ml**: Mängd tillsatt gödning
 
-Datan lagras i en SQLite-databas (`mixtank.db`) och visas i en tabell sorterad från senast mätning först.
+Datan lagras i en SQLite-databas i `data/mixtank.db` och visas i en tabell sorterad från senast mätning först.
+
+Tips for produktion:
+
+- Undvik att radera databasfilen vid felsokning.
+- Satt eventuell extern datavolym med miljo-variabeln `LOGWEB_DATA_DIR`.
 
 Portalen pa `https://rudbergloggar.duckdns.org/` visar en knapp for MixTank-matningar.
 
