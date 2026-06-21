@@ -192,6 +192,15 @@ Backupscriptet verifierar varje backup innan den behalls:
 
 Loggdomanen ar skyddad med HTTP Basic Auth i [deploy/nginx-logweb.conf](deploy/nginx-logweb.conf).
 
+Undantag for ESP32:
+
+- `https://rudbergloggar.duckdns.org/esp32/` -> interaktiv ESP32-UI bakom Basic Auth
+- `https://rudbergloggar.duckdns.org/setsolarconfig`
+- `https://rudbergloggar.duckdns.org/setduration`
+- `https://rudbergloggar.duckdns.org/settiming`
+
+De tre konfig-endpointerna ovan proxas direkt till `192.168.1.125` utan Basic Auth, men ar begransade till `GET` och `POST` samt enkel rate limiting i Nginx. Nuvarande limit ar dimensionerad for hogst cirka ett legitimt anrop per minut, med liten marginal for retry.
+
 Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med tva val:
 
 - `https://rudbergloggar.duckdns.org/loggar` -> Proxmox loggserver (Flask)
