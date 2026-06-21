@@ -143,7 +143,22 @@ def mixtank_index():
             abort(400)
 
     measurements = MixtankMeasurement.query.order_by(MixtankMeasurement.datum.desc()).all()
-    return render_template("mixtank.html", measurements=measurements)
+
+    cutoff_date = date.today() - timedelta(days=29)
+    chart_measurements = (
+        MixtankMeasurement.query
+        .filter(MixtankMeasurement.datum >= cutoff_date)
+        .order_by(MixtankMeasurement.datum.asc())
+        .all()
+    )
+    chart_data = {
+        "labels": [m.datum.isoformat() for m in chart_measurements],
+        "ph": [m.ph for m in chart_measurements],
+        "temp": [m.temp for m in chart_measurements],
+        "ec": [m.ec for m in chart_measurements],
+    }
+
+    return render_template("mixtank.html", measurements=measurements, chart_data=chart_data)
 
 
 @app.route("/mixtank/export.csv")
