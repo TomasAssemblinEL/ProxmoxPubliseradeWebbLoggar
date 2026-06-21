@@ -15,6 +15,10 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'mixtank.db'}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+# Create tables on app startup
+with app.app_context():
+    db.create_all()
+
 
 class MixtankMeasurement(db.Model):
     __tablename__ = "measurements"
@@ -136,8 +140,6 @@ def mixtank_index():
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     LOG_DIR.mkdir(exist_ok=True)
     for category in LOG_CATEGORIES:
         (LOG_DIR / category).mkdir(exist_ok=True)
