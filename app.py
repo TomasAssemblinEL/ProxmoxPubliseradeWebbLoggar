@@ -1,8 +1,10 @@
 from pathlib import Path
 from time import time
 from datetime import datetime
+import csv
+from io import StringIO
 
-from flask import Flask, abort, render_template, send_file, request, redirect, url_for
+from flask import Flask, Response, abort, render_template, send_file, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -138,6 +140,43 @@ def mixtank_index():
 
     measurements = MixtankMeasurement.query.order_by(MixtankMeasurement.datum.desc()).all()
     return render_template("mixtank.html", measurements=measurements)
+
+
+@app.route("/mixtank/export.csv")
+def mixtank_export_csv():
+    measurements = MixtankMeasurement.query.order_by(MixtankMeasurement.datum.desc()).all()
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "datum",
+        "ph",
+        "temp_c",
+        "ec",
+        "tillsatt_ph_minus_ml",
+        "tillsatt_goding_ml",
+        "skapad_tid",
+    ])
+
+    for m in measurements:
+        writer.writerow([
+            m.datum.isoformat(),
+            m.ph,
+            m.temp,
+            m.ec,
+            m.tillsatt_ph_minus_ml,
+            m.tillsatt_goding_ml,
+            m.created_at.isoformat() if m.created_at else "",
+        ])
+
+    csv_data = output.getvalue()
+    output.close()
+
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=mixtank-measurements.csv"},
+    )
 
 
 if __name__ == "__main__":

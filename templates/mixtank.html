@@ -48,6 +48,18 @@
       border-color: var(--accent);
     }
 
+    .top-nav .export-link {
+      margin-left: 10px;
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .top-nav .export-link:hover {
+      background: #0a5a54;
+      border-color: #0a5a54;
+    }
+
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
@@ -160,6 +172,7 @@
   <div class="container">
     <div class="top-nav">
       <a href="{{ url_for('index') }}">← Tillbaka till startsida</a>
+      <a class="export-link" href="{{ url_for('mixtank_export_csv') }}">Exportera CSV</a>
     </div>
 
     <div class="panel">
