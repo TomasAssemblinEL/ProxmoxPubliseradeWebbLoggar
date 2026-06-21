@@ -3,6 +3,8 @@ set -euo pipefail
 
 APP_DIR="/opt/logweb"
 BRANCH="${1:-main}"
+NGINX_SOURCE="$APP_DIR/deploy/nginx-logweb.conf"
+NGINX_TARGET="/etc/nginx/sites-available/reverse-proxy"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Error: run as root (needed for systemctl)." >&2
@@ -29,6 +31,9 @@ git pull --ff-only origin "$BRANCH"
 
 echo "==> Installing/updating Python dependencies"
 "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+
+echo "==> Installing Nginx config"
+install -m 644 "$NGINX_SOURCE" "$NGINX_TARGET"
 
 echo "==> Restarting services"
 systemctl restart logweb

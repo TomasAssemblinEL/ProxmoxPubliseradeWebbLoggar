@@ -236,6 +236,7 @@ Skriptet gor detta automatiskt:
 
 - Hamtar senaste kod fran `origin/main` (fast-forward only)
 - Installerar/uppdaterar Python-beroenden
+- Installerar projektets Nginx-config till `/etc/nginx/sites-available/reverse-proxy`
 - Startar om `logweb`
 - Validerar och laddar om Nginx
 - Gor en lokal health-check med retry (upp till 20 sekunder)
