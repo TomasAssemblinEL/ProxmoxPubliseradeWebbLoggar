@@ -15,10 +15,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'mixtank.db'}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-# Create tables on app startup
-with app.app_context():
-    db.create_all()
-
 
 class MixtankMeasurement(db.Model):
     __tablename__ = "measurements"
@@ -33,6 +29,11 @@ class MixtankMeasurement(db.Model):
 
     def __repr__(self):
         return f"<Measurement {self.datum} PH={self.ph}>"
+
+
+# Create database tables on app startup
+with app.app_context():
+    db.create_all()
 
 
 def list_text_logs_by_category() -> dict[str, list[str]]:
