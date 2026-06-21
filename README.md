@@ -9,6 +9,9 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 - Raderar automatiskt `.txt`-filer som ar aldre an 5 dagar per kategori
 - Visar varje loggfil som ren text via `/logs/<kategori>/<filnamn>`
 - **Registrera och visa MixTank-mätningar**: datum, PH, temperatur, EC, tillsatt PH-, gödning
+- **Radera felaktig MixTank-mätning** direkt i tabellen
+- **Grafisk trendvisning 30 dagar** för PH, temperatur och EC
+- **CSV-export av MixTank-data**: allt, senaste 7 dagar, senaste 30 dagar
 - Startsida med portal för alla tjänster
 - Fungerar bakom Nginx reverse proxy med HTTPS
 
@@ -42,6 +45,9 @@ Registrera och visa uppmatta varden fran MixTanken pa `https://rudbergloggar.duc
 - **EC**: Elektrisk ledningsförmåga
 - **Tillsatt ml PH-**: Mängd tillsatt pH-minus
 - **Tillsatt konc gödning ml**: Mängd tillsatt gödning
+- **Radera mätning**: ta bort felregistrerade poster via knappen `Radera`
+- **Graf 30 dagar**: linjegraf med PH, temperatur och EC
+- **CSV-export**: knappar för allt, 7 dagar och 30 dagar
 
 Datan lagras i en SQLite-databas i `data/mixtank.db` och visas i en tabell sorterad från senast mätning först.
 
@@ -174,6 +180,13 @@ EOF
    - `systemctl start logweb-db-backup.service`
    - `journalctl -u logweb-db-backup.service -n 50 --no-pager`
    - `ls -la /mnt/systembackup/logweb-db`
+
+Backupscriptet verifierar varje backup innan den behalls:
+
+- Kontrollerar att backupfilen inte ar tom
+- Kor SQLite `PRAGMA integrity_check` pa backupkopian
+- Skapar checksum-fil (`.sha256`) bredvid varje `.db`
+- Loggar filstorlek och verifieringsstatus i systemd-journalen
 
 ### Nginx (dual-domain reverse proxy)
 
