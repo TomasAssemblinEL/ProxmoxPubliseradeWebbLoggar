@@ -1,0 +1,12 @@
+[Unit]
+Description=Loggweb nightly MixTank database backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/logweb
+EnvironmentFile=-/etc/default/logweb-db-backup
+ExecStart=/opt/logweb/deploy/backup-mixtank-db.sh

@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly backup of Loggweb MixTank database
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=20m
+Unit=logweb-db-backup.service
+
+[Install]
+WantedBy=timers.target

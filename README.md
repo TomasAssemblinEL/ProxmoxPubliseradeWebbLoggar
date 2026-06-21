@@ -128,6 +128,53 @@ Fallback utan systemd timer (cron):
 - `15 3 * * * /opt/logweb/.venv/bin/python -c "from app import cleanup_old_logs; cleanup_old_logs()" >> /var/log/logweb-cleanup.log 2>&1`
 - `crontab -l | grep cleanup_old_logs`
 
+### Nattlig backup av MixTank-databas (till OPENMEDIAVAULT)
+
+Mål: skapa datumstampade backuper av `data/mixtank.db` varje natt till `\\OPENMEDIAVAULT\Hela_Disken2\systembackup`.
+
+1. Installera CIFS-stod:
+   - `apt install -y cifs-utils`
+2. Skapa mountpunkt:
+   - `mkdir -p /mnt/systembackup`
+3. Skapa credential-fil:
+   - `mkdir -p /etc/smbcredentials`
+   - `cat > /etc/smbcredentials/omv-systembackup <<'EOF'`
+   - `username=DITT_OMV_USER`
+   - `password=DITT_OMV_LOSENORD`
+   - `EOF`
+   - `chmod 600 /etc/smbcredentials/omv-systembackup`
+4. Lagga till i `/etc/fstab` (monterar undermappen `systembackup`):
+   - `//OPENMEDIAVAULT/Hela_Disken2 /mnt/systembackup cifs credentials=/etc/smbcredentials/omv-systembackup,uid=0,gid=0,file_mode=0640,dir_mode=0750,vers=3.0,prefixpath=systembackup,nofail,_netdev,x-systemd.automount 0 0`
+5. Montera och verifiera:
+   - `mount -a`
+   - `ls -la /mnt/systembackup`
+
+Installera backup-timer:
+
+1. Gor script korbart:
+   - `chmod +x /opt/logweb/deploy/backup-mixtank-db.sh`
+2. Kopiera systemd-filer:
+   - `cp /opt/logweb/deploy/logweb-db-backup.service /etc/systemd/system/logweb-db-backup.service`
+   - `cp /opt/logweb/deploy/logweb-db-backup.timer /etc/systemd/system/logweb-db-backup.timer`
+3. (Valfritt) konfigurera destination/retention i `/etc/default/logweb-db-backup`:
+
+```bash
+cat > /etc/default/logweb-db-backup <<'EOF'
+LOGWEB_DB_PATH=/opt/logweb/data/mixtank.db
+LOGWEB_DB_BACKUP_DIR=/mnt/systembackup/logweb-db
+LOGWEB_DB_BACKUP_KEEP_DAYS=30
+EOF
+```
+
+4. Aktivera timern:
+   - `systemctl daemon-reload`
+   - `systemctl enable --now logweb-db-backup.timer`
+   - `systemctl list-timers --all | grep logweb-db-backup`
+5. Testkor backup direkt:
+   - `systemctl start logweb-db-backup.service`
+   - `journalctl -u logweb-db-backup.service -n 50 --no-pager`
+   - `ls -la /mnt/systembackup/logweb-db`
+
 ### Nginx (dual-domain reverse proxy)
 
 Loggdomanen ar skyddad med HTTP Basic Auth i [deploy/nginx-logweb.conf](deploy/nginx-logweb.conf).
