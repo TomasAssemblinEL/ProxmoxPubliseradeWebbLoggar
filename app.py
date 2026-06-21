@@ -1,6 +1,6 @@
 from pathlib import Path
 from time import time
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import csv
 from io import StringIO
 
@@ -144,7 +144,22 @@ def mixtank_index():
 
 @app.route("/mixtank/export.csv")
 def mixtank_export_csv():
-    measurements = MixtankMeasurement.query.order_by(MixtankMeasurement.datum.desc()).all()
+    days_param = request.args.get("days", default="", type=str).strip()
+    query = MixtankMeasurement.query
+
+    if days_param:
+        try:
+            days = int(days_param)
+        except ValueError:
+            abort(400)
+
+        if days <= 0:
+            abort(400)
+
+        cutoff_date = date.today() - timedelta(days=days - 1)
+        query = query.filter(MixtankMeasurement.datum >= cutoff_date)
+
+    measurements = query.order_by(MixtankMeasurement.datum.desc()).all()
 
     output = StringIO()
     writer = csv.writer(output)
@@ -172,10 +187,14 @@ def mixtank_export_csv():
     csv_data = output.getvalue()
     output.close()
 
+    filename = "mixtank-measurements.csv"
+    if days_param:
+        filename = f"mixtank-measurements-last-{days_param}-days.csv"
+
     return Response(
         csv_data,
         mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=mixtank-measurements.csv"},
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

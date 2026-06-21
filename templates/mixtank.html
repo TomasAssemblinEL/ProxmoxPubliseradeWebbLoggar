@@ -60,6 +60,17 @@
       border-color: #0a5a54;
     }
 
+    .top-nav .export-link.secondary {
+      background: var(--card);
+      color: var(--ink);
+      border-color: var(--border);
+    }
+
+    .top-nav .export-link.secondary:hover {
+      border-color: var(--accent);
+      background: #f3efe7;
+    }
+
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
@@ -172,7 +183,9 @@
   <div class="container">
     <div class="top-nav">
       <a href="{{ url_for('index') }}">← Tillbaka till startsida</a>
-      <a class="export-link" href="{{ url_for('mixtank_export_csv') }}">Exportera CSV</a>
+      <a class="export-link" href="{{ url_for('mixtank_export_csv') }}">Exportera CSV (allt)</a>
+      <a class="export-link secondary" href="{{ url_for('mixtank_export_csv', days=7) }}">CSV 7 dagar</a>
+      <a class="export-link secondary" href="{{ url_for('mixtank_export_csv', days=30) }}">CSV 30 dagar</a>
     </div>
 
     <div class="panel">
