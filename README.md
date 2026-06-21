@@ -8,7 +8,8 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 - Visar endast loggfiler fran de senaste 5 dagarna per kategori
 - Raderar automatiskt `.txt`-filer som ar aldre an 5 dagar per kategori
 - Visar varje loggfil som ren text via `/logs/<kategori>/<filnamn>`
-- Enkel startsida på `/`
+- **Registrera och visa MixTank-mätningar**: datum, PH, temperatur, EC, tillsatt PH-, gödning
+- Startsida med portal för alla tjänster
 - Fungerar bakom Nginx reverse proxy med HTTPS
 
 ## Lokal körning
@@ -24,12 +25,27 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 5. Öppna:
    - `http://localhost:8080`
 
-Lägg dina loggfiler som `.txt` i respektive kategori:
+Lagg ut loggfiler som `.txt` i respektive kategori:
 
-- `logs/VMM1/`
-- `logs/VMM2/`
-- `logs/MixTank/`
-- `logs/Irrigation/`
+- `logs/VMM1/` - VMM1-loggar
+- `logs/VMM2/` - VMM2-loggar
+- `logs/MixTank/` - MixTank-loggfiler
+- `logs/Irrigation/` - Bevattnint-loggar
+
+## MixTank-matningar
+
+Registrera och visa uppmatta varden fran MixTanken pa `https://rudbergloggar.duckdns.org/mixtank`:
+
+- **Datum**: När mätningen gjordes
+- **PH**: Värdets pH-nivå
+- **Temp**: Temperaturen i °C
+- **EC**: Elektrisk ledningsförmåga
+- **Tillsatt ml PH-**: Mängd tillsatt pH-minus
+- **Tillsatt konc gödning ml**: Mängd tillsatt gödning
+
+Datan lagras i en SQLite-databas (`mixtank.db`) och visas i en tabell sorterad från senast mätning först.
+
+Portalen pa `https://rudbergloggar.duckdns.org/` visar en knapp for MixTank-matningar.
 
 ## Produktion (nuvarande upplägg)
 

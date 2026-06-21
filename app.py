@@ -1,7 +1,9 @@
 from pathlib import Path
 from time import time
+from datetime import datetime
 
-from flask import Flask, abort, render_template, send_file
+from flask import Flask, abort, render_template, send_file, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 
 BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "logs"
@@ -9,6 +11,24 @@ LOG_CATEGORIES = ("VMM1", "VMM2", "MixTank", "Irrigation")
 LOG_DAYS_WINDOW = 5
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'mixtank.db'}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
+
+class MixtankMeasurement(db.Model):
+    __tablename__ = "measurements"
+    id = db.Column(db.Integer, primary_key=True)
+    datum = db.Column(db.Date, nullable=False, index=True)
+    ph = db.Column(db.Float, nullable=False)
+    temp = db.Column(db.Float, nullable=False)
+    ec = db.Column(db.Float, nullable=False)
+    tillsatt_ph_minus_ml = db.Column(db.Float, nullable=False, default=0)
+    tillsatt_goding_ml = db.Column(db.Float, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Measurement {self.datum} PH={self.ph}>"
 
 
 def list_text_logs_by_category() -> dict[str, list[str]]:
@@ -93,7 +113,31 @@ def view_log(category: str, filename: str):
     return send_file(log_path, mimetype="text/plain; charset=utf-8")
 
 
+@app.route("/mixtank", methods=["GET", "POST"])
+def mixtank_index():
+    if request.method == "POST":
+        try:
+            measurement = MixtankMeasurement(
+                datum=datetime.strptime(request.form["datum"], "%Y-%m-%d").date(),
+                ph=float(request.form["ph"]),
+                temp=float(request.form["temp"]),
+                ec=float(request.form["ec"]),
+                tillsatt_ph_minus_ml=float(request.form.get("tillsatt_ph_minus_ml", 0)),
+                tillsatt_goding_ml=float(request.form.get("tillsatt_goding_ml", 0)),
+            )
+            db.session.add(measurement)
+            db.session.commit()
+            return redirect(url_for("mixtank_index"))
+        except (ValueError, KeyError) as e:
+            abort(400)
+
+    measurements = MixtankMeasurement.query.order_by(MixtankMeasurement.datum.desc()).all()
+    return render_template("mixtank.html", measurements=measurements)
+
+
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     LOG_DIR.mkdir(exist_ok=True)
     for category in LOG_CATEGORIES:
         (LOG_DIR / category).mkdir(exist_ok=True)

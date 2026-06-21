@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MixTank Mätningar</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --card: #fffdf8;
+      --ink: #1e2430;
+      --accent: #0f766e;
+      --border: #d6cfc2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top left, #fdf8ee 0%, var(--bg) 45%, #ece5d8 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .top-nav {
+      margin-bottom: 20px;
+    }
+
+    .top-nav a {
+      display: inline-block;
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--ink);
+      font-size: 0.9rem;
+    }
+
+    .top-nav a:hover {
+      border-color: var(--accent);
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 12px 32px rgba(30, 36, 48, 0.12);
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: 1.8rem;
+      letter-spacing: 0.03em;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 1.15rem;
+      letter-spacing: 0.02em;
+      color: #334155;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+
+    input[type="date"],
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+    }
+
+    button {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 160ms ease;
+    }
+
+    button:hover {
+      background: #0a5a54;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    thead {
+      background: #f0ebe3;
+      border-bottom: 2px solid var(--border);
+    }
+
+    th {
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:hover {
+      background: #fdf8f1;
+    }
+
+    .empty {
+      padding: 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="{{ url_for('index') }}">← Tillbaka till startsida</a>
+    </div>
+
+    <div class="panel">
+      <h1>MixTank Mätningar</h1>
+
+      <h2>Registrera ny mätning</h2>
+      <form method="post">
+        <div class="form-group">
+          <div>
+            <label for="datum">Datum</label>
+            <input type="date" id="datum" name="datum" required>
+          </div>
+          <div>
+            <label for="ph">PH</label>
+            <input type="number" id="ph" name="ph" step="0.01" min="0" max="14" required>
+          </div>
+          <div>
+            <label for="temp">Temperatur (°C)</label>
+            <input type="number" id="temp" name="temp" step="0.1" required>
+          </div>
+          <div>
+            <label for="ec">EC</label>
+            <input type="number" id="ec" name="ec" step="1" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div>
+            <label for="tillsatt_ph_minus_ml">Tillsatt ml PH-</label>
+            <input type="number" id="tillsatt_ph_minus_ml" name="tillsatt_ph_minus_ml" step="0.1" value="0">
+          </div>
+          <div>
+            <label for="tillsatt_goding_ml">Tillsatt konc gödning ml</label>
+            <input type="number" id="tillsatt_goding_ml" name="tillsatt_goding_ml" step="0.1" value="0">
+          </div>
+        </div>
+
+        <button type="submit">Spara mätning</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Registrerade mätningar</h2>
+      {% if measurements %}
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th>PH</th>
+                <th>Temp (°C)</th>
+                <th>EC</th>
+                <th>PH- (ml)</th>
+                <th>Gödning (ml)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in measurements %}
+                <tr>
+                  <td>{{ m.datum.strftime('%Y-%m-%d') }}</td>
+                  <td>{{ "%.2f"|format(m.ph) }}</td>
+                  <td>{{ "%.1f"|format(m.temp) }}</td>
+                  <td>{{ "%.0f"|format(m.ec) }}</td>
+                  <td>{{ "%.1f"|format(m.tillsatt_ph_minus_ml) }}</td>
+                  <td>{{ "%.1f"|format(m.tillsatt_goding_ml) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty">Inga mätningar registrerade än.</div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
