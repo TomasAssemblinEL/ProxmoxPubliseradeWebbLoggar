@@ -134,6 +134,14 @@ Kopiera projektets konfig:
 - `systemctl enable --now nginx`
 - `systemctl reload nginx`
 
+Viktigt for portalen:
+
+- Startsidan `https://rudbergloggar.duckdns.org/` visar portalen i `app.py`
+- Loggsidan ligger pa `https://rudbergloggar.duckdns.org/loggar`
+- Om du ser loggsidan direkt pa `/`, kora uppdateringen pa servern sa att senaste commit ar laddad:
+   - `sudo /opt/logweb/deploy/update-logweb.sh`
+   - eller `git -C /opt/logweb rev-parse --short HEAD` och jamfor med senaste commit
+
 ### Enkel uppdatering från GitHub (ett kommando)
 
 Projektet innehaller ett uppdateringsskript i `deploy/update-logweb.sh`.
