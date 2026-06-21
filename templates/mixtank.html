@@ -169,6 +169,20 @@
       background: #0a5a54;
     }
 
+    .delete-form {
+      margin: 0;
+    }
+
+    .delete-button {
+      padding: 8px 12px;
+      background: #b91c1c;
+      font-size: 0.85rem;
+    }
+
+    .delete-button:hover {
+      background: #991b1b;
+    }
+
     .table-wrapper {
       overflow-x: auto;
     }
@@ -284,6 +298,7 @@
                 <th>EC</th>
                 <th>PH- (ml)</th>
                 <th>Gödning (ml)</th>
+                <th>Åtgärd</th>
               </tr>
             </thead>
             <tbody>
@@ -295,6 +310,11 @@
                   <td>{{ "%.0f"|format(m.ec) }}</td>
                   <td>{{ "%.1f"|format(m.tillsatt_ph_minus_ml) }}</td>
                   <td>{{ "%.1f"|format(m.tillsatt_goding_ml) }}</td>
+                  <td>
+                    <form class="delete-form" method="post" action="{{ url_for('mixtank_delete_measurement', measurement_id=m.id) }}" onsubmit="return confirm('Radera denna mätning?');">
+                      <button class="delete-button" type="submit">Radera</button>
+                    </form>
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>

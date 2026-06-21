@@ -161,6 +161,17 @@ def mixtank_index():
     return render_template("mixtank.html", measurements=measurements, chart_data=chart_data)
 
 
+@app.route("/mixtank/<int:measurement_id>/delete", methods=["POST"])
+def mixtank_delete_measurement(measurement_id: int):
+    measurement = db.session.get(MixtankMeasurement, measurement_id)
+    if measurement is None:
+        abort(404)
+
+    db.session.delete(measurement)
+    db.session.commit()
+    return redirect(url_for("mixtank_index"))
+
+
 @app.route("/mixtank/export.csv")
 def mixtank_export_csv():
     days_param = request.args.get("days", default="", type=str).strip()
