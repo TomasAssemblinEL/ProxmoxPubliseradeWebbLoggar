@@ -70,6 +70,166 @@ Portalen pa `https://rudbergloggar.duckdns.org/` visar en knapp for MixTank-matn
   - TCP 80 -> `192.168.1.65:80`
   - TCP 443 -> `192.168.1.65:443`
 
+## System architecture diagram
+
+```mermaid
+flowchart TD
+   Internet[Internet Clients]
+   DuckDNS[DuckDNS DNS\nrudbergloggar / rud4berg / rud4bergimmich]
+   UniFi[UniFi Router\nPort forward 80/443]
+
+   subgraph PVE[Proxmox Host]
+      LXC[LXC 105 (192.168.1.65)]
+
+      subgraph LogWeb[LogWeb stack in LXC]
+         Nginx[Nginx Reverse Proxy\nHTTPS + Basic Auth + rate limiting]
+         Flask[Gunicorn + Flask\napp.py on :8080]
+         Logs[(logs/*.txt)]
+         DB[(SQLite\ndata/mixtank.db)]
+         Cleanup[logweb-cleanup.timer]
+         Backup[logweb-db-backup.timer]
+      end
+   end
+
+   HA[Home Assistant\n192.168.1.166:8123]
+   ESP32[ESP32 Greenhouse Control\n192.168.1.125]
+   Immich[Immich\n192.168.1.24:2283]
+   OMV[OpenMediaVault share\n/mnt/systembackup/logweb-db]
+   LE[Let's Encrypt via Certbot\nDNS-01 (duckdns plugin)]
+
+   Internet --> DuckDNS
+   DuckDNS --> UniFi
+   UniFi --> LXC
+   LE --> Nginx
+
+   Nginx -->|/loggar, /mixtank, /| Flask
+   Flask --> Logs
+   Flask --> DB
+
+   Nginx -->|rud4berg.duckdns.org| HA
+   Nginx -->|rud4bergimmich.duckdns.org| Immich
+   Nginx -->|/esp32, /setsolarconfig, /setduration, /settiming| ESP32
+
+   Cleanup --> Logs
+   Backup --> DB
+   Backup --> OMV
+```
+
+## System architecture diagram (network-centric for driftfelsokning)
+
+```mermaid
+flowchart LR
+   subgraph WAN[WAN layer]
+      Client[External client]
+      DNS[DuckDNS]
+      LE[Let's Encrypt API]
+   end
+
+   subgraph EDGE[LAN edge layer]
+      Router[UniFi router/firewall\nNAT 80/443 -> 192.168.1.65]
+   end
+
+   subgraph HOST[Host layer: Proxmox]
+      PVE[Proxmox host]
+      FW[Proxmox firewall rules]
+      BR[vmbr0 bridge]
+   end
+
+   subgraph CT[Container layer: LXC 105 (192.168.1.65)]
+      GW[Default gateway\nvia 192.168.1.1]
+      Nginx[Nginx :80/:443]
+      Gunicorn[Gunicorn/Flask :8080]
+      Certs[/etc/letsencrypt]
+      TimerA[logweb-cleanup.timer]
+      TimerB[logweb-db-backup.timer]
+   end
+
+   subgraph LAN[LAN services layer]
+      HA[Home Assistant\n192.168.1.166:8123]
+      ESP32[ESP32\n192.168.1.125]
+      Immich[Immich\n192.168.1.24:2283]
+      OMV[OpenMediaVault share]
+   end
+
+   Client --> DNS --> Router
+   LE --> DNS
+   Router --> FW --> BR --> GW --> Nginx
+   Nginx --> Gunicorn
+   Nginx --> HA
+   Nginx --> ESP32
+   Nginx --> Immich
+   LE --> Certs --> Nginx
+   TimerA --> Gunicorn
+   TimerB --> OMV
+
+   T1{{Check 1:\nDNS resolves domain?}}
+   T2{{Check 2:\nPort forward 80/443 -> .65?}}
+   T3{{Check 3:\nCT has default route?}}
+   T4{{Check 4:\nNginx active + nginx -t?}}
+   T5{{Check 5:\nUpstreams reachable in LAN?}}
+
+   DNS -.-> T1
+   Router -.-> T2
+   GW -.-> T3
+   Nginx -.-> T4
+   HA -.-> T5
+   ESP32 -.-> T5
+   Immich -.-> T5
+```
+
+### Felsokningsordning per lager (WAN -> LAN -> Host -> Container)
+
+1. WAN (DNS + extern vag in)
+   - Kontrollera att domanen pekar ratt och svarar externt.
+   - Exempel:
+     - nslookup rudbergloggar.duckdns.org
+     - curl -I https://rudbergloggar.duckdns.org --max-time 10
+
+2. LAN edge (router/NAT)
+   - Verifiera port forward 80/443 till 192.168.1.65.
+   - Bekrafta att ingen regel blockerar inkommande trafik pa 80/443.
+
+3. Host (Proxmox)
+   - Kontrollera bridge och host-route.
+   - Exempel:
+     - ip a
+     - ip r
+     - pct config 105
+
+4. Container (LXC 105)
+   - Kontrollera default gateway, DNS och egress 443.
+   - Exempel:
+     - pct exec 105 -- ip r
+     - pct exec 105 -- cat /etc/resolv.conf
+     - pct exec 105 -- curl -I https://github.com --max-time 10
+
+5. App ingress i container
+   - Verifiera Nginx och backend lokalt.
+   - Exempel:
+     - pct exec 105 -- nginx -t
+     - pct exec 105 -- systemctl status nginx --no-pager -l
+     - pct exec 105 -- systemctl status logweb --no-pager -l
+     - pct exec 105 -- curl -I http://127.0.0.1:8080
+
+6. Upstreams pa LAN (fran Nginx)
+   - Bekrafta att proxymal ar nåbara.
+   - Exempel:
+     - pct exec 105 -- curl -kI https://192.168.1.166:8123 --max-time 10
+     - pct exec 105 -- curl -I http://192.168.1.24:2283 --max-time 10
+     - pct exec 105 -- curl -I http://192.168.1.125 --max-time 10
+
+7. SSL och certifikat
+   - Verifiera certifikatfiler och validera reload.
+   - Exempel:
+     - pct exec 105 -- certbot certificates
+     - pct exec 105 -- nginx -t
+     - pct exec 105 -- systemctl reload nginx
+
+8. Vanliga felbilder och snabbfix
+   - Saknad default route i LXC: lagg till gateway i CT-konfig och starta om CT.
+   - Nginx-fel efter deploy: kontrollera /etc/nginx/sites-available/reverse-proxy med nginx -t.
+   - GitHub ej nåbar från LXC: kontrollera default route forst, sedan DNS.
+
 ## Deployment i Proxmox LXC (Debian/Ubuntu)
 
 1. Installera paket:
