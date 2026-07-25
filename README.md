@@ -72,6 +72,8 @@ Portalen pa `https://rudbergloggar.duckdns.org/` visar en knapp for MixTank-matn
 
 ## System architecture diagram
 
+For a compact and render-safe diagram, see [system-architecture.md](system-architecture.md).
+
 ```mermaid
 flowchart TD
    Internet[Internet Clients]
@@ -79,7 +81,7 @@ flowchart TD
    UniFi[UniFi Router\nPort forward 80/443]
 
    subgraph PVE[Proxmox Host]
-      LXC[LXC 105 (192.168.1.65)]
+      LXC["LXC 105 - 192.168.1.65"]
 
       subgraph LogWeb[LogWeb stack in LXC]
          Nginx[Nginx Reverse Proxy\nHTTPS + Basic Auth + rate limiting]
@@ -95,7 +97,7 @@ flowchart TD
    ESP32[ESP32 Greenhouse Control\n192.168.1.125]
    Immich[Immich\n192.168.1.24:2283]
    OMV[OpenMediaVault share\n/mnt/systembackup/logweb-db]
-   LE[Let's Encrypt via Certbot\nDNS-01 (duckdns plugin)]
+   LE[Lets Encrypt via Certbot - DNS-01 duckdns plugin]
 
    Internet --> DuckDNS
    DuckDNS --> UniFi
@@ -135,11 +137,11 @@ flowchart LR
       BR[vmbr0 bridge]
    end
 
-   subgraph CT[Container layer: LXC 105 (192.168.1.65)]
+   subgraph CT["Container layer: LXC 105 - 192.168.1.65"]
       GW[Default gateway\nvia 192.168.1.1]
       Nginx[Nginx :80/:443]
       Gunicorn[Gunicorn/Flask :8080]
-      Certs[/etc/letsencrypt]
+      Certs["/etc/letsencrypt"]
       TimerA[logweb-cleanup.timer]
       TimerB[logweb-db-backup.timer]
    end
