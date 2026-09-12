@@ -13,8 +13,7 @@ Ett Python/Flask-projekt som publicerar textloggar (`.txt`) via webbläsare.
 - **Grafisk trendvisning 30 dagar** för PH, temperatur och EC
 - **CSV-export av MixTank-data**: allt, senaste 7 dagar, senaste 30 dagar
 - Startsida med portal för alla tjänster
-- Fungerar bakom Nginx reverse proxy med HTTPS
-
+- Fungerar bakom Nginx reverse proxy med HTTPS- Exponerar extern webbapp "EL Berg Rud 4" via proxy till `http://192.168.1.204:7070/`
 ## Lokal körning
 
 1. Skapa virtuell miljö:
@@ -63,12 +62,35 @@ Portalen pa `https://rudbergloggar.duckdns.org/` visar en knapp for MixTank-matn
 - Proxmox loggserver: `192.168.1.65`
 - ESP32 Greenhouse Control: `192.168.1.125`
 - Home Assistant: `192.168.1.166`
+- EL Berg Rud 4: `192.168.1.204:7070`
 - Loggdomän: `rudbergloggar.duckdns.org`
 - HA-domän: `rud4berg.duckdns.org`
 - Immich-domän: `rud4bergimmich.duckdns.org`
+- EL Berg Rud 4-domän: `el-berg-rud-4.duckdns.org` (eller valfri extern domän)
 - Publik port forward i UniFi:
   - TCP 80 -> `192.168.1.65:80`
   - TCP 443 -> `192.168.1.65:443`
+
+## Extern webbapp: EL Berg Rud 4
+
+For att exponera sidan pa `http://192.168.1.204:7070/` via samma reverse proxy som de andra tjänsterna, lagg till en Nginx-vhost med ett externt domännamn:
+
+```nginx
+server {
+    listen 80;
+    server_name el-berg-rud-4.duckdns.org;
+
+    location / {
+        proxy_pass http://192.168.1.204:7070/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Med detta kan sidan komma in externt via `https://el-berg-rud-4.duckdns.org/` efter att HTTPS-certifikat ar satt upp via Lets Encrypt eller annan proxy.
 
 ## System architecture diagram
 
@@ -96,6 +118,7 @@ flowchart TD
    HA[Home Assistant\n192.168.1.166:8123]
    ESP32[ESP32 Greenhouse Control\n192.168.1.125]
    Immich[Immich\n192.168.1.24:2283]
+   ELBergRud4[EL Berg Rud 4\n192.168.1.204:7070]
    OMV[OpenMediaVault share\n/mnt/systembackup/logweb-db]
    LE[Lets Encrypt via Certbot - DNS-01 duckdns plugin]
 
@@ -110,6 +133,7 @@ flowchart TD
 
    Nginx -->|rud4berg.duckdns.org| HA
    Nginx -->|rud4bergimmich.duckdns.org| Immich
+   Nginx -->|el-berg-rud-4.duckdns.org| ELBergRud4
    Nginx -->|/esp32, /setsolarconfig, /setduration, /settiming| ESP32
 
    Cleanup --> Logs
@@ -150,6 +174,7 @@ flowchart LR
       HA[Home Assistant\n192.168.1.166:8123]
       ESP32[ESP32\n192.168.1.125]
       Immich[Immich\n192.168.1.24:2283]
+      ELBergRud4[EL Berg Rud 4\n192.168.1.204:7070]
       OMV[OpenMediaVault share]
    end
 
@@ -160,6 +185,7 @@ flowchart LR
    Nginx --> HA
    Nginx --> ESP32
    Nginx --> Immich
+   Nginx --> ELBergRud4
    LE --> Certs --> Nginx
    TimerA --> Gunicorn
    TimerB --> OMV
@@ -363,10 +389,32 @@ Undantag for ESP32:
 
 De tre konfig-endpointerna ovan proxas direkt till `192.168.1.125` utan Basic Auth, men ar begransade till `GET` och `POST` samt enkel rate limiting i Nginx. Nuvarande limit ar dimensionerad for hogst cirka ett legitimt anrop per minut, med liten marginal for retry.
 
-Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med tva val:
+Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med tre val:
 
 - `https://rudbergloggar.duckdns.org/loggar` -> Proxmox loggserver (Flask)
 - `https://rudbergloggar.duckdns.org/esp32/` -> ESP32 Greenhouse Control (192.168.1.125 via Nginx proxy)
+- `https://el-berg-rud-4.duckdns.org/` -> EL Berg Rud 4 (192.168.1.204:7070 via Nginx proxy)
+
+Exakt Nginx-serverblock for EL Berg Rud 4:
+
+```nginx
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name el-berg-rud-4.duckdns.org;
+    ssl_certificate /etc/letsencrypt/live/el-berg-rud-4.duckdns.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/el-berg-rud-4.duckdns.org/privkey.pem;
+
+    location / {
+        proxy_pass http://192.168.1.204:7070/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 Skapa fil for behoriga anvandare (forsta anvandaren):
 
@@ -393,6 +441,56 @@ Viktigt for portalen:
 - Om du ser loggsidan direkt pa `/`, kora uppdateringen pa servern sa att senaste commit ar laddad:
    - `sudo /opt/logweb/deploy/update-logweb.sh`
    - eller `git -C /opt/logweb rev-parse --short HEAD` och jamfor med senaste commit
+
+### Komplett deployment i Proxmox/LXC (ett komplett exempel)
+
+Folj dessa steg pa den LXC eller VM som ska hysa appen:
+
+```bash
+apt update
+apt install -y python3 python3-venv python3-pip git nginx apache2-utils certbot python3-certbot-dns-duckdns
+
+cd /opt
+git clone https://github.com/TomasAssemblinEL/ProxmoxPubliseradeWebbLoggar.git logweb
+cd /opt/logweb
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+mkdir -p logs/VMM1 logs/VMM2 logs/MixTank logs/Irrigation
+chmod +x deploy/update-logweb.sh deploy/update-certificates.sh
+
+mkdir -p /etc/letsencrypt/duckdns
+cat > /etc/letsencrypt/duckdns/credentials.ini <<'EOF'
+dns_duckdns_token = DITT_DUCKDNS_TOKEN
+EOF
+chmod 600 /etc/letsencrypt/duckdns/credentials.ini
+
+certbot certonly \
+  --authenticator dns-duckdns \
+  --dns-duckdns-credentials /etc/letsencrypt/duckdns/credentials.ini \
+  --dns-duckdns-propagation-seconds 60 \
+  -d rudbergloggar.duckdns.org \
+  -m dinmail@exempel.se \
+  --agree-tos --no-eff-email --non-interactive
+
+certbot certonly \
+  --authenticator dns-duckdns \
+  --dns-duckdns-credentials /etc/letsencrypt/duckdns/credentials.ini \
+  --dns-duckdns-propagation-seconds 60 \
+  -d el-berg-rud-4.duckdns.org \
+  -m dinmail@exempel.se \
+  --agree-tos --no-eff-email --non-interactive
+
+cp /opt/logweb/deploy/nginx-logweb.conf /etc/nginx/sites-available/reverse-proxy
+rm -f /etc/nginx/sites-enabled/default
+ln -sfn /etc/nginx/sites-available/reverse-proxy /etc/nginx/sites-enabled/reverse-proxy
+nginx -t
+systemctl enable --now nginx
+systemctl daemon-reload
+systemctl enable --now logweb
+systemctl restart logweb
+systemctl reload nginx
+```
 
 ### Enkel uppdatering från GitHub (ett kommando)
 
@@ -441,7 +539,8 @@ certbot certonly \
   --dns-duckdns-propagation-seconds 60 \
   -d rud4berg.duckdns.org \
   -d rudbergloggar.duckdns.org \
-   -d rud4bergimmich.duckdns.org \
+  -d el-berg-rud-4.duckdns.org \
+  -d rud4bergimmich.duckdns.org \
   -m dinmail@exempel.se \
   --agree-tos --no-eff-email --non-interactive
 ```

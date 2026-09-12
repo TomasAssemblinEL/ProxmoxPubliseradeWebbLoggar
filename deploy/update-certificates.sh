@@ -16,6 +16,11 @@ LOG_DOMAINS=(
   "rudbergloggar.duckdns.org"
 )
 
+ELBERG_CERT_NAME="el-berg-rud-4.duckdns.org"
+ELBERG_DOMAINS=(
+  "el-berg-rud-4.duckdns.org"
+)
+
 if [ "$(id -u)" -ne 0 ]; then
   echo "Error: run as root (needed for certbot and systemctl)." >&2
   exit 1
@@ -66,6 +71,22 @@ certbot certonly \
   --dns-duckdns-propagation-seconds "$PROPAGATION_SECONDS" \
   --cert-name "$LOG_CERT_NAME" \
   -d "${LOG_DOMAINS[0]}" \
+  -m "$EMAIL" \
+  --agree-tos \
+  --no-eff-email \
+  --non-interactive
+
+echo "==> Requesting/updating certificate: $ELBERG_CERT_NAME"
+for domain in "${ELBERG_DOMAINS[@]}"; do
+  echo " - $domain"
+done
+
+certbot certonly \
+  --authenticator dns-duckdns \
+  --dns-duckdns-credentials "$CREDENTIALS_FILE" \
+  --dns-duckdns-propagation-seconds "$PROPAGATION_SECONDS" \
+  --cert-name "$ELBERG_CERT_NAME" \
+  -d "${ELBERG_DOMAINS[0]}" \
   -m "$EMAIL" \
   --agree-tos \
   --no-eff-email \

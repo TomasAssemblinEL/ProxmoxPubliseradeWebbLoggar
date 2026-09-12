@@ -15,6 +15,7 @@ DB_PATH = DATA_DIR / "mixtank.db"
 LOG_DIR = BASE_DIR / "logs"
 LOG_CATEGORIES = ("VMM1", "VMM2", "MixTank", "Irrigation")
 LOG_DAYS_WINDOW = 5
+EL_BERG_RUD_4_URL = "http://192.168.1.204:7070/"
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
@@ -122,6 +123,11 @@ def logs_index():
 def view_log(category: str, filename: str):
     log_path = resolve_log_file(category, filename)
     return send_file(log_path, mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/el-berg-rud-4")
+def el_berg_rud_4():
+    return redirect(EL_BERG_RUD_4_URL, code=302)
 
 
 @app.route("/mixtank", methods=["GET", "POST"])
