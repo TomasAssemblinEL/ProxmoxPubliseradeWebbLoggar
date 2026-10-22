@@ -389,11 +389,12 @@ Undantag for ESP32:
 
 De tre konfig-endpointerna ovan proxas direkt till `192.168.1.125` utan Basic Auth, men ar begransade till `GET` och `POST` samt enkel rate limiting i Nginx. Nuvarande limit ar dimensionerad for hogst cirka ett legitimt anrop per minut, med liten marginal for retry.
 
-Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med tre val:
+Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med fyra val:
 
 - `https://rudbergloggar.duckdns.org/loggar` -> Proxmox loggserver (Flask)
 - `https://rudbergloggar.duckdns.org/esp32/` -> ESP32 Greenhouse Control (192.168.1.125 via Nginx proxy)
 - `https://el-berg-rud-4.duckdns.org/` -> EL Berg Rud 4 (192.168.1.204:7070 via Nginx proxy)
+- `https://rudbergloggar.duckdns.org/dashboards/` -> Dashboards (Grafana pa 192.168.1.251:3000 via Nginx proxy)
 
 Exakt Nginx-serverblock for EL Berg Rud 4:
 
@@ -415,6 +416,22 @@ server {
     }
 }
 ```
+
+### Grafana Dashboards (`/dashboards/`)
+
+Grafana pa `192.168.1.251:3000` publiceras under `https://rudbergloggar.duckdns.org/dashboards/` via samma Nginx-serverblock och Basic Auth som loggportalen (ingen ny domän eller nytt certifikat behovs).
+
+Satt foljande i Grafanas `grafana.ini` (typiskt `/etc/grafana/grafana.ini`) pa Grafana-servern och starta om Grafana (`systemctl restart grafana-server`):
+
+```ini
+[server]
+root_url = https://rudbergloggar.duckdns.org/dashboards/
+serve_from_sub_path = true
+```
+
+Nginx tar bort `Authorization`-headern innan trafiken skickas till Grafana, sa Grafana visar sin egen inloggning efter Nginx Basic Auth. Gor sedan `nginx -t && systemctl reload nginx`.
+
+Viktigt: Grafana ska inte porta ut direkt i routern; endast Nginx (443) ska vara publik. Byt Grafanas standardlosenord och stang av `[auth.anonymous]`.
 
 Skapa fil for behoriga anvandare (forsta anvandaren):
 

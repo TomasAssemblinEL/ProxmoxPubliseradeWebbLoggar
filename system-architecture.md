@@ -38,6 +38,7 @@ flowchart LR
     Nginx --> ESP32[ESP32 192.168.1.125]:::ext
     Nginx --> Immich[Immich 192.168.1.24]:::ext
     Nginx --> ELBergRud4[EL Berg Rud 4 192.168.1.204:7070]:::ext
+    Nginx --> Grafana[Grafana 192.168.1.251:3000 under /dashboards/]:::ext
 
     Backup[Backup timer]:::app --> OMV[OpenMediaVault share]:::ext
     Cleanup[Cleanup timer]:::app --> Logs
