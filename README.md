@@ -394,7 +394,7 @@ Efter inloggning pa `https://rudbergloggar.duckdns.org/` visas en portal med fyr
 - `https://rudbergloggar.duckdns.org/loggar` -> Proxmox loggserver (Flask)
 - `https://rudbergloggar.duckdns.org/esp32/` -> ESP32 Greenhouse Control (192.168.1.125 via Nginx proxy)
 - `https://el-berg-rud-4.duckdns.org/` -> EL Berg Rud 4 (192.168.1.204:7070 via Nginx proxy)
-- `https://rudbergloggar.duckdns.org/dashboards/` -> Dashboards (Grafana pa 192.168.1.251:3000 via Nginx proxy)
+- `https://rudbergdashboards.duckdns.org/` -> Dashboards (Grafana pa 192.168.1.251:3000 via Nginx proxy)
 
 Exakt Nginx-serverblock for EL Berg Rud 4:
 
@@ -417,21 +417,25 @@ server {
 }
 ```
 
-### Grafana Dashboards (`/dashboards/`)
+### Grafana Dashboards (`rudbergdashboards.duckdns.org`)
 
-Grafana pa `192.168.1.251:3000` publiceras under `https://rudbergloggar.duckdns.org/dashboards/` via samma Nginx-serverblock och Basic Auth som loggportalen (ingen ny domän eller nytt certifikat behovs).
+Grafana pa `192.168.1.251:3000` publiceras pa egen domän `https://rudbergdashboards.duckdns.org/` via ett eget Nginx-serverblock och eget Lets Encrypt-certifikat. Grafana kor pa `/` (ingen subpath).
 
-Satt foljande i Grafanas `grafana.ini` (typiskt `/etc/grafana/grafana.ini`) pa Grafana-servern och starta om Grafana (`systemctl restart grafana-server`):
+Steg:
+
+1. DuckDNS: skapa subdomänen `rudbergdashboards` och peka den pa samma publika IP som de ovriga domänerna (UniFi NAT 80/443 gar redan till Nginx).
+2. Certifikat: `sudo /opt/logweb/deploy/update-certificates.sh dinmail@exempel.se` (skapar ocksa certet `rudbergdashboards.duckdns.org`).
+3. Grafana (`/etc/grafana/grafana.ini`), starta sedan om med `systemctl restart grafana-server`:
 
 ```ini
 [server]
-root_url = https://rudbergloggar.duckdns.org/dashboards/
-serve_from_sub_path = true
+root_url = https://rudbergdashboards.duckdns.org/
 ```
 
-Nginx tar bort `Authorization`-headern innan trafiken skickas till Grafana, sa Grafana visar sin egen inloggning efter Nginx Basic Auth. Gor sedan `nginx -t && systemctl reload nginx`.
+4. Nginx: kopiera `deploy/nginx-logweb.conf` till `/etc/nginx/sites-available/reverse-proxy`, kor `nginx -t && systemctl reload nginx`.
+5. Uppdatera portalen: `sudo /opt/logweb/deploy/update-logweb.sh`.
 
-Viktigt: Grafana ska inte porta ut direkt i routern; endast Nginx (443) ska vara publik. Byt Grafanas standardlosenord och stang av `[auth.anonymous]`.
+Sakerhet: domänen har ingen Basic Auth, sa Grafanas egen inloggning ar enda skyddet. Byt admin-losenord, stang av `[auth.anonymous]` och `allow_sign_up`. Port 3000 ska inte portvidarebefordras i routern; endast Nginx (443) ska vara publik.
 
 Skapa fil for behoriga anvandare (forsta anvandaren):
 
@@ -495,6 +499,14 @@ certbot certonly \
   --dns-duckdns-credentials /etc/letsencrypt/duckdns/credentials.ini \
   --dns-duckdns-propagation-seconds 60 \
   -d el-berg-rud-4.duckdns.org \
+  -m dinmail@exempel.se \
+  --agree-tos --no-eff-email --non-interactive
+
+certbot certonly \
+  --authenticator dns-duckdns \
+  --dns-duckdns-credentials /etc/letsencrypt/duckdns/credentials.ini \
+  --dns-duckdns-propagation-seconds 60 \
+  -d rudbergdashboards.duckdns.org \
   -m dinmail@exempel.se \
   --agree-tos --no-eff-email --non-interactive
 
@@ -571,13 +583,14 @@ Projektet innehaller ett certifikat-skript i `deploy/update-certificates.sh`.
 
 1. Forsta gangen, gor skriptet korbart:
    - `chmod +x /opt/logweb/deploy/update-certificates.sh`
-2. Kor certifikat-uppdatering for alla tre domaner:
+2. Kor certifikat-uppdatering for alla domaner:
    - `sudo /opt/logweb/deploy/update-certificates.sh dinmail@exempel.se`
 
 Skriptet gor detta automatiskt:
 
 - Uppdaterar/hamtar certifikat `rud4berg.duckdns.org` med domanerna `rud4berg.duckdns.org` och `rud4bergimmich.duckdns.org`
 - Uppdaterar/hamtar separat certifikat `rudbergloggar.duckdns.org` for loggdomanen
+- Uppdaterar/hamtar separata certifikat `el-berg-rud-4.duckdns.org` och `rudbergdashboards.duckdns.org`
 - Visar installerade certifikat
 - Validerar Nginx-konfig och laddar om Nginx
 
