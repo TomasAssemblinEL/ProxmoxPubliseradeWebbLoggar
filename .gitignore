@@ -19,3 +19,5 @@ Thumbs.db
 *.log
 *.db
 data/
+logs/*.txt
+!logs/.gitkeep
